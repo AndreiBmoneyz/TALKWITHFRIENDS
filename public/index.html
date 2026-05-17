@@ -293,7 +293,7 @@ function setVolume(userId, value) {
       participant.audioTrackPublications.forEach((pub) => {
         if (pub.track) {
           const audioEl = pub.track.attachedElements[0];
-          if (audioEl) audioEl.volume = value / 100;
+          if (audioEl) audioEl.volume = value / 200;
         }
       });
     }
