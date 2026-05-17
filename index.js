@@ -4,6 +4,7 @@ const session = require('express-session');
 const bcrypt = require('bcrypt');
 const { Pool } = require('pg');
 const { AccessToken } = require('livekit-server-sdk');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 const path = require('path');
 
 const app = express();
@@ -15,6 +16,15 @@ app.use(session({
   saveUninitialized: false,
   cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 }
 }));
+
+// Proxy /livekit/* to local livekit server (handles WSS)
+app.use('/livekit', createProxyMiddleware({
+  target: 'http://localhost:7880',
+  changeOrigin: true,
+  ws: true,
+  pathRewrite: { '^/livekit': '' },
+}));
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -23,7 +33,6 @@ const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || 'secret';
 const LIVEKIT_URL = process.env.LIVEKIT_URL;
 const MAX_ROOM_SIZE = 5;
 
-// rooms: { [roomName]: { users: [...], createdAt } }
 let rooms = {};
 
 async function initDB() {
@@ -99,8 +108,6 @@ async function generateToken(user, roomName) {
 }
 
 function findBestRoom(userId) {
-  // Find room with most people but still has a free seat
-  // exclude rooms where this user already is
   let best = null;
   let bestCount = -1;
   for (const [roomName, room] of Object.entries(rooms)) {
@@ -116,46 +123,25 @@ function findBestRoom(userId) {
 
 app.post('/api/join', requireAuth, async (req, res) => {
   const user = req.session.user;
-
-  // Find best existing room or create new one
   let roomName = findBestRoom(user.id);
-
   if (!roomName) {
-    // No room available, create a new one
     roomName = `room-${Date.now()}`;
     rooms[roomName] = { users: [], createdAt: Date.now() };
-    console.log(`Created new room: ${roomName}`);
   }
-
-  // Add user to room
   rooms[roomName].users.push({ ...user, joinedAt: Date.now() });
-  console.log(`${user.username} joined ${roomName}. Users: ${rooms[roomName].users.length}`);
-
-  // Generate token
   const token = await generateToken(user, roomName);
-
-  res.json({
-    ok: true,
-    roomName,
-    token,
-    livekitUrl: LIVEKIT_URL,
-    roomUsers: rooms[roomName].users,
-  });
+  res.json({ ok: true, roomName, token, livekitUrl: LIVEKIT_URL, roomUsers: rooms[roomName].users });
 });
 
 app.post('/api/leave', requireAuth, (req, res) => {
   const user = req.session.user;
   for (const [roomName, room] of Object.entries(rooms)) {
     room.users = room.users.filter(u => u.id !== user.id);
-    if (room.users.length === 0) {
-      delete rooms[roomName];
-      console.log(`Deleted empty room: ${roomName}`);
-    }
+    if (room.users.length === 0) delete rooms[roomName];
   }
   res.json({ ok: true });
 });
 
-// Clean up empty rooms every 60 seconds
 setInterval(() => {
   for (const [roomName, room] of Object.entries(rooms)) {
     if (room.users.length === 0) delete rooms[roomName];
@@ -163,4 +149,17 @@ setInterval(() => {
 }, 60000);
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// Enable WebSocket proxying
+server.on('upgrade', (req, socket, head) => {
+  if (req.url.startsWith('/livekit')) {
+    const proxy = createProxyMiddleware({
+      target: 'http://localhost:7880',
+      changeOrigin: true,
+      ws: true,
+      pathRewrite: { '^/livekit': '' },
+    });
+    proxy.upgrade(req, socket, head);
+  }
+});
