@@ -263,8 +263,8 @@ function renderParticipants(users) {
     <div class="participant">
       <div class="p-avatar" id="p-${u.id}">${u.username[0].toUpperCase()}</div>
       <div class="p-name">${u.username}</div>
-      <button onclick="muteParticipant('${u.id}', this)" style="background:none;border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">🔊</button>
-      <input type="range" min="0" max="200" value="100" style="width:120px;accent-color:#5865F2;" oninput="setVolume('${u.id}', this.value)"/>
+      ${u.id !== currentUser.id ? `<button onclick="muteParticipant('${u.id}', this)" style="background:none;border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">🔊</button>
+      <input type="range" min="0" max="200" value="200" style="width:100%;accent-color:#5865F2;" oninput="setVolume('${u.id}', this.value)"/>` : ''}
     </div>
   `).join('');
 }
