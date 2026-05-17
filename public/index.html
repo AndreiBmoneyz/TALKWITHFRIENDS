@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FriendsTalking</title>
+<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:#0f0f13;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  color:#fff;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:20px;
+  padding:24px;
+}
+h1 { font-size:28px; font-weight:700; }
+h1 span { color:#5865F2; }
+.subtitle { color:rgba(255,255,255,0.4); font-size:14px; }
+
+.card {
+  background:#17171f;
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:16px;
+  padding:28px;
+  width:100%;
+  max-width:400px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.tabs { display:flex; gap:8px; }
+.tab {
+  flex:1; padding:9px; border-radius:8px; border:none;
+  font-size:13px; font-weight:600; cursor:pointer;
+  background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.4);
+  transition:all 0.15s;
+}
+.tab.active { background:#5865F2; color:#fff; }
+input {
+  background:#0f0f13;
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:10px;
+  padding:12px 16px;
+  color:#fff;
+  font-size:14px;
+  outline:none;
+  width:100%;
+}
+input:focus { border-color:#5865F2; }
+input::placeholder { color:rgba(255,255,255,0.25); }
+.btn {
+  padding:13px; border-radius:10px; border:none;
+  font-size:15px; font-weight:600; cursor:pointer; width:100%;
+  transition:opacity 0.15s, transform 0.1s;
+}
+.btn:active { transform:scale(0.98); }
+.btn:hover:not(:disabled) { opacity:0.88; }
+.btn:disabled { opacity:0.35; cursor:not-allowed; }
+.btn-primary { background:#5865F2; color:#fff; }
+.btn-danger { background:rgba(226,75,74,0.15); color:#E24B4A; border:1px solid rgba(226,75,74,0.25); }
+.err { font-size:12px; color:#E24B4A; text-align:center; min-height:16px; }
+
+/* App screen */
+#appScreen { display:none; flex-direction:column; align-items:center; gap:20px; width:100%; max-width:440px; }
+.user-bar {
+  width:100%; display:flex; align-items:center; justify-content:space-between;
+  background:#17171f; border:1px solid rgba(255,255,255,0.07);
+  border-radius:12px; padding:10px 16px;
+}
+.user-info { display:flex; align-items:center; gap:10px; }
+.user-avatar {
+  width:36px; height:36px; border-radius:50%;
+  background:#5865F2; display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:14px;
+}
+.user-name { font-size:14px; font-weight:500; }
+.logout-btn { background:none; border:none; color:rgba(255,255,255,0.3); font-size:12px; cursor:pointer; }
+.logout-btn:hover { color:rgba(255,255,255,0.6); }
+
+.status { text-align:center; font-size:13px; color:rgba(255,255,255,0.4); min-height:20px; }
+.status.active { color:#f5c842; }
+.queue-info { display:flex; align-items:center; gap:8px; justify-content:center; font-size:13px; color:rgba(255,255,255,0.35); }
+.dot { width:8px; height:8px; border-radius:50%; background:#f5c842; animation:pulse 1.2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.4;transform:scale(0.8);} }
+
+/* Voice room */
+#voiceRoom {
+  display:none; flex-direction:column; align-items:center; gap:20px;
+  width:100%; max-width:500px;
+}
+.room-title { font-size:16px; color:#1D9E75; font-weight:600; }
+.participants {
+  display:flex; gap:16px; flex-wrap:wrap; justify-content:center;
+}
+.participant {
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+}
+.p-avatar {
+  width:72px; height:72px; border-radius:50%;
+  background:#1a2a4a;
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px; font-weight:700; color:#85b7eb;
+  border:3px solid rgba(255,255,255,0.1);
+  transition:border-color 0.2s, box-shadow 0.2s;
+  position:relative;
+}
+.p-avatar.speaking {
+  border-color:#1D9E75;
+  box-shadow:0 0 18px rgba(29,158,117,0.5);
+}
+.p-name { font-size:11px; color:rgba(255,255,255,0.45); }
+.mic-bar {
+  display:flex; align-items:center; gap:10px;
+  background:#17171f; border:1px solid rgba(255,255,255,0.07);
+  border-radius:12px; padding:12px 20px;
+  width:100%; max-width:300px; justify-content:center;
+}
+.mic-btn {
+  width:48px; height:48px; border-radius:50%; border:none; cursor:pointer;
+  font-size:20px; transition:all 0.15s;
+  background:#1D9E75; color:#fff;
+}
+.mic-btn.muted { background:rgba(226,75,74,0.2); color:#E24B4A; }
+.mic-label { font-size:12px; color:rgba(255,255,255,0.3); }
+</style>
+</head>
+<body>
+
+<h1>Friends<span>Talking</span></h1>
+<p class="subtitle">Meet random people. Just talk.</p>
+
+<!-- Auth screen -->
+<div id="authScreen">
+  <div class="card">
+    <div class="tabs">
+      <button class="tab active" id="loginTab" onclick="switchTab('login')">Login</button>
+      <button class="tab" id="registerTab" onclick="switchTab('register')">Sign up</button>
+    </div>
+    <input type="text" id="authUsername" placeholder="Username" maxlength="32"/>
+    <input type="password" id="authPassword" placeholder="Password"/>
+    <div class="err" id="authErr"></div>
+    <button class="btn btn-primary" id="authBtn" onclick="doAuth()">Login</button>
+  </div>
+</div>
+
+<!-- App screen -->
+<div id="appScreen">
+  <div class="user-bar">
+    <div class="user-info">
+      <div class="user-avatar" id="userInitial">?</div>
+      <span class="user-name" id="userName"></span>
+    </div>
+    <button class="logout-btn" onclick="doLogout()">Logout</button>
+  </div>
+  <div class="card">
+    <button class="btn btn-primary" id="connectBtn" onclick="joinQueue()">Connect with strangers</button>
+    <button class="btn btn-danger" id="leaveBtn" onclick="leaveQueue()" style="display:none">Leave queue</button>
+    <div class="status" id="statusMsg"></div>
+    <div class="queue-info" id="queueInfo" style="display:none">
+      <div class="dot"></div>
+      <span id="queueText">Waiting for others...</span>
+    </div>
+  </div>
+</div>
+
+<!-- Voice room -->
+<div id="voiceRoom">
+  <div class="room-title">🎙 Room active</div>
+  <div class="participants" id="participants"></div>
+  <div class="mic-bar">
+    <button class="mic-btn" id="micBtn" onclick="toggleMic()">🎤</button>
+    <span class="mic-label" id="micLabel">Mic on</span>
+  </div>
+  <button class="btn btn-danger" style="max-width:300px" onclick="leaveRoom()">Leave room</button>
+</div>
+
+<script>
+let currentUser = null;
+let currentTab = 'login';
+let polling = null;
+let livekitRoom = null;
+let micMuted = false;
+
+// ── INIT ──────────────────────────────────────────────────────────────
+async function init() {
+  const res = await fetch('/api/me');
+  const data = await res.json();
+  if (data.user) showApp(data.user);
+}
+
+// ── AUTH ──────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('loginTab').classList.toggle('active', tab === 'login');
+  document.getElementById('registerTab').classList.toggle('active', tab === 'register');
+  document.getElementById('authBtn').textContent = tab === 'login' ? 'Login' : 'Create account';
+  document.getElementById('authErr').textContent = '';
+}
+
+async function doAuth() {
+  const username = document.getElementById('authUsername').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const errEl = document.getElementById('authErr');
+  errEl.textContent = '';
+
+  if (!username || !password) { errEl.textContent = 'Fill in all fields'; return; }
+
+  const endpoint = currentTab === 'login' ? '/api/login' : '/api/register';
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (data.error) { errEl.textContent = data.error; return; }
+    showApp(data.user);
+  } catch(e) {
+    errEl.textContent = 'Connection error';
+  }
+}
+
+async function doLogout() {
+  await fetch('/api/logout', { method: 'POST' });
+  currentUser = null;
+  document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('authScreen').style.display = 'flex';
+}
+
+function showApp(user) {
+  currentUser = user;
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'flex';
+  document.getElementById('userName').textContent = user.username;
+  document.getElementById('userInitial').textContent = user.username[0].toUpperCase();
+}
+
+// ── QUEUE ─────────────────────────────────────────────────────────────
+async function joinQueue() {
+  setStatus('Joining queue...', 'active');
+  document.getElementById('connectBtn').disabled = true;
+  document.getElementById('leaveBtn').style.display = 'block';
+
+  try {
+    const res = await fetch('/api/join', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    const data = await res.json();
+    if (data.matched) {
+      startVoiceRoom(data);
+    } else {
+      document.getElementById('queueInfo').style.display = 'flex';
+      setStatus('', '');
+      polling = setInterval(pollQueue, 2000);
+    }
+  } catch(e) {
+    setStatus('Error joining queue', '');
+    resetQueue();
+  }
+}
+
+async function pollQueue() {
+  try {
+    const res = await fetch('/api/status');
+    const data = await res.json();
+    document.getElementById('queueText').textContent = `${data.queueSize} ${data.queueSize === 1 ? 'person' : 'people'} in queue...`;
+    if (data.queueSize >= 2) {
+      clearInterval(polling);
+      const res2 = await fetch('/api/join', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+      const data2 = await res2.json();
+      if (data2.matched) startVoiceRoom(data2);
+      else polling = setInterval(pollQueue, 2000);
+    }
+  } catch(e) {}
+}
+
+async function leaveQueue() {
+  clearInterval(polling);
+  await fetch('/api/leave', { method: 'POST' }).catch(() => {});
+  resetQueue();
+}
+
+function resetQueue() {
+  clearInterval(polling);
+  document.getElementById('connectBtn').disabled = false;
+  document.getElementById('leaveBtn').style.display = 'none';
+  document.getElementById('queueInfo').style.display = 'none';
+  setStatus('', '');
+}
+
+function setStatus(msg, type) {
+  const el = document.getElementById('statusMsg');
+  el.textContent = msg;
+  el.className = 'status' + (type ? ' ' + type : '');
+}
+
+// ── VOICE ROOM ────────────────────────────────────────────────────────
+async function startVoiceRoom(data) {
+  clearInterval(polling);
+  document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('voiceRoom').style.display = 'flex';
+
+  // Render participants
+  renderParticipants(data.roomUsers);
+
+  // Connect to Livekit
+  try {
+    livekitRoom = new LivekitClient.Room({
+      adaptiveStream: true,
+      dynacast: true,
+    });
+
+    livekitRoom.on(LivekitClient.RoomEvent.ParticipantConnected, () => updateSpeakers());
+    livekitRoom.on(LivekitClient.RoomEvent.ParticipantDisconnected, () => updateSpeakers());
+    livekitRoom.on(LivekitClient.RoomEvent.ActiveSpeakersChanged, (speakers) => {
+      document.querySelectorAll('.p-avatar').forEach(el => el.classList.remove('speaking'));
+      speakers.forEach(s => {
+        const el = document.getElementById('p-' + s.identity);
+        if (el) el.classList.add('speaking');
+      });
+    });
+
+    await livekitRoom.connect(data.livekitUrl, data.token);
+    await livekitRoom.localParticipant.setMicrophoneEnabled(true);
+    console.log('Connected to Livekit room:', data.roomName);
+  } catch(e) {
+    console.error('Livekit error:', e);
+  }
+}
+
+function renderParticipants(users) {
+  const container = document.getElementById('participants');
+  container.innerHTML = users.map(u => `
+    <div class="participant">
+      <div class="p-avatar" id="p-${u.id}">${u.username[0].toUpperCase()}</div>
+      <div class="p-name">${u.username}</div>
+    </div>
+  `).join('');
+}
+
+function updateSpeakers() {
+  // just keep the existing avatars, speakers update via event
+}
+
+async function toggleMic() {
+  micMuted = !micMuted;
+  if (livekitRoom) {
+    await livekitRoom.localParticipant.setMicrophoneEnabled(!micMuted);
+  }
+  document.getElementById('micBtn').textContent = micMuted ? '🔇' : '🎤';
+  document.getElementById('micBtn').className = 'mic-btn' + (micMuted ? ' muted' : '');
+  document.getElementById('micLabel').textContent = micMuted ? 'Mic off' : 'Mic on';
+}
+
+async function leaveRoom() {
+  if (livekitRoom) {
+    await livekitRoom.disconnect();
+    livekitRoom = null;
+  }
+  document.getElementById('voiceRoom').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'flex';
+  resetQueue();
+}
+
+init();
+</script>
+</body>
+</html>
