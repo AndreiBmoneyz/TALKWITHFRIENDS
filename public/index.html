@@ -66,14 +66,14 @@ input::placeholder { color:rgba(255,255,255,0.25); }
 .logout-btn:hover { color:rgba(255,255,255,0.6); }
 #voiceRoom {
   display:none; flex-direction:column; align-items:center; gap:20px;
-  width:100%; max-width:800px;
+  width:100%; max-width:800px; position:relative; z-index:1;
 }
 .room-title { font-size:16px; color:#1D9E75; font-weight:600; }
 .room-count { font-size:12px; color:rgba(255,255,255,0.3); }
 .campfire-scene {
-  position:relative; width:100%; aspect-ratio:4095/2276;
+  position:fixed; top:0; left:0; width:100vw; height:100vh;
   background:url('/campfire.png') center/cover no-repeat;
-  border-radius:16px; overflow:hidden;
+  z-index:0;
 }
 .participant {
   position:absolute; display:flex; flex-direction:column; align-items:center; gap:4px;
@@ -95,8 +95,10 @@ input::placeholder { color:rgba(255,255,255,0.25); }
 .p-name { font-size:11px; color:rgba(255,255,255,0.45); }
 .mic-bar {
   display:flex; align-items:center; gap:12px;
-  background:#17171f; border:1px solid rgba(255,255,255,0.07);
+  background:rgba(23,23,31,0.85); border:1px solid rgba(255,255,255,0.07);
   border-radius:12px; padding:12px 24px;
+  position:fixed; bottom:120px; left:50%; transform:translateX(-50%);
+  z-index:2;
 }
 .mic-btn {
   width:52px; height:52px; border-radius:50%; border:none; cursor:pointer;
