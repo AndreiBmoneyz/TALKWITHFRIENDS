@@ -24,9 +24,11 @@ const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || 'secret';
 const LIVEKIT_URL = process.env.LIVEKIT_URL;
 const MAX_ROOM_SIZE = 5;
 
+// queue: array of { id, username, avatar, joinedAt }
 let queue = [];
+// matched rooms waiting to be picked up: { [userId]: { roomName, token, livekitUrl, roomUsers } }
+let pendingMatches = {};
 
-// Init DB tables
 async function initDB() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
@@ -59,7 +61,6 @@ app.post('/api/register', async (req, res) => {
     res.json({ ok: true, user: req.session.user });
   } catch (err) {
     if (err.code === '23505') return res.status(400).json({ error: 'Username already taken' });
-    console.error(err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -76,7 +77,6 @@ app.post('/api/login', async (req, res) => {
     req.session.user = { id: user.id, username: user.username, avatar: user.avatar };
     res.json({ ok: true, user: req.session.user });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -90,8 +90,6 @@ app.get('/api/me', (req, res) => {
   res.json({ user: req.session.user || null });
 });
 
-// ─── AUTH MIDDLEWARE ───────────────────────────────────────────────────
-
 function requireAuth(req, res, next) {
   if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
   next();
@@ -99,48 +97,72 @@ function requireAuth(req, res, next) {
 
 // ─── MATCHMAKING ───────────────────────────────────────────────────────
 
+async function generateToken(user, roomName) {
+  const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
+    identity: String(user.id),
+    name: user.username,
+    ttl: '1h',
+  });
+  token.addGrant({
+    roomJoin: true,
+    room: roomName,
+    canPublish: true,
+    canSubscribe: true,
+  });
+  return await token.toJwt();
+}
+
 app.post('/api/join', requireAuth, async (req, res) => {
   const user = req.session.user;
+
+  // Remove if already in queue
   queue = queue.filter(u => u.id !== user.id);
   queue.push({ ...user, joinedAt: Date.now() });
+
   console.log(`${user.username} joined queue. Size: ${queue.length}`);
 
   if (queue.length >= 2) {
     const roomUsers = queue.splice(0, MAX_ROOM_SIZE);
     const roomName = `room-${Date.now()}`;
 
-    // Generate Livekit token for the requesting user
-    const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
-      identity: String(user.id),
-      name: user.username,
-      ttl: '1h',
-    });
-    token.addGrant({
-      roomJoin: true,
-      room: roomName,
-      canPublish: true,
-      canSubscribe: true,
-    });
-    const jwt = await token.toJwt();
+    // Generate tokens for ALL users in the room and store in pendingMatches
+    for (const u of roomUsers) {
+      const token = await generateToken(u, roomName);
+      pendingMatches[u.id] = {
+        roomName,
+        token,
+        livekitUrl: LIVEKIT_URL,
+        roomUsers,
+      };
+    }
 
-    return res.json({
-      matched: true,
-      roomName,
-      token: jwt,
-      livekitUrl: LIVEKIT_URL,
-      roomUsers,
-    });
+    // Return match to the requesting user immediately
+    const myMatch = pendingMatches[user.id];
+    delete pendingMatches[user.id];
+    return res.json({ matched: true, ...myMatch });
   }
 
   res.json({ matched: false, queuePosition: queue.length });
 });
 
-app.get('/api/status', (req, res) => {
-  res.json({ queueSize: queue.length });
+// Poll endpoint — returns match if ready, or queue size
+app.get('/api/poll', requireAuth, (req, res) => {
+  const user = req.session.user;
+
+  // Check if this user has a pending match
+  if (pendingMatches[user.id]) {
+    const match = pendingMatches[user.id];
+    delete pendingMatches[user.id];
+    return res.json({ matched: true, ...match });
+  }
+
+  res.json({ matched: false, queueSize: queue.length });
 });
 
 app.post('/api/leave', requireAuth, (req, res) => {
-  queue = queue.filter(u => u.id !== req.session.user.id);
+  const user = req.session.user;
+  queue = queue.filter(u => u.id !== user.id);
+  delete pendingMatches[user.id];
   res.json({ ok: true });
 });
 
