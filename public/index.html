@@ -261,12 +261,11 @@ async function startVoice(data) {
 function renderParticipants(users) {
   document.getElementById('participants').innerHTML = users.map(u => `
     <div class="participant">
-      <div class="p-avatar" id="p-${u.id}">${u.username[0].toUpperCase()}</div>
-      <div class="p-name">${u.username}</div>
-      <input type="range" min="0" max="200" value="100" style="width:60px;accent-color:#5865F2;" oninput="setVolume('${u.id}', this.value)"/>
-    </div>
-  `).join('');
-}
+  <div class="p-avatar" id="p-${u.id}">${u.username[0].toUpperCase()}</div>
+  <div class="p-name">${u.username}</div>
+  <button onclick="muteParticipant('${u.id}', this)" style="background:none;border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">🔊</button>
+  <input type="range" min="0" max="100" value="100" style="width:60px;accent-color:#5865F2;" oninput="setVolume('${u.id}', this.value)"/>
+</div>
 
 function toggleMic() {
   micMuted = !micMuted;
@@ -299,6 +298,23 @@ function setVolume(userId, value) {
     }
   });
 }  
+
+function muteParticipant(userId, btn) {
+  if (!livekitRoom) return;
+  livekitRoom.remoteParticipants.forEach((participant) => {
+    if (participant.identity === String(userId)) {
+      participant.audioTrackPublications.forEach((pub) => {
+        if (pub.track) {
+          const audioEl = pub.track.attachedElements[0];
+          if (audioEl) {
+            audioEl.muted = !audioEl.muted;
+            btn.textContent = audioEl.muted ? '🔇' : '🔊';
+          }
+        }
+      });
+    }
+  });
+}
   
 init();
 </script>
