@@ -10,28 +10,18 @@
 body {
   background:#0f0f13;
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  color:#fff;
-  min-height:100vh;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:20px;
-  padding:24px;
+  color:#fff; min-height:100vh;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:20px; padding:24px;
 }
 h1 { font-size:28px; font-weight:700; }
 h1 span { color:#5865F2; }
 .subtitle { color:rgba(255,255,255,0.4); font-size:14px; }
 .card {
-  background:#17171f;
-  border:1px solid rgba(255,255,255,0.07);
-  border-radius:16px;
-  padding:28px;
-  width:100%;
-  max-width:400px;
-  display:flex;
-  flex-direction:column;
-  gap:14px;
+  background:#17171f; border:1px solid rgba(255,255,255,0.07);
+  border-radius:16px; padding:28px; width:100%; max-width:400px;
+  display:flex; flex-direction:column; gap:14px;
 }
 .tabs { display:flex; gap:8px; }
 .tab {
@@ -42,14 +32,9 @@ h1 span { color:#5865F2; }
 }
 .tab.active { background:#5865F2; color:#fff; }
 input {
-  background:#0f0f13;
-  border:1px solid rgba(255,255,255,0.1);
-  border-radius:10px;
-  padding:12px 16px;
-  color:#fff;
-  font-size:14px;
-  outline:none;
-  width:100%;
+  background:#0f0f13; border:1px solid rgba(255,255,255,0.1);
+  border-radius:10px; padding:12px 16px; color:#fff;
+  font-size:14px; outline:none; width:100%;
 }
 input:focus { border-color:#5865F2; }
 input::placeholder { color:rgba(255,255,255,0.25); }
@@ -72,28 +57,23 @@ input::placeholder { color:rgba(255,255,255,0.25); }
 }
 .user-info { display:flex; align-items:center; gap:10px; }
 .user-initial {
-  width:36px; height:36px; border-radius:50%;
-  background:#5865F2; display:flex; align-items:center; justify-content:center;
+  width:36px; height:36px; border-radius:50%; background:#5865F2;
+  display:flex; align-items:center; justify-content:center;
   font-weight:700; font-size:14px;
 }
 .user-name { font-size:14px; font-weight:500; }
 .logout-btn { background:none; border:none; color:rgba(255,255,255,0.3); font-size:12px; cursor:pointer; }
 .logout-btn:hover { color:rgba(255,255,255,0.6); }
-.status { text-align:center; font-size:13px; color:rgba(255,255,255,0.4); min-height:20px; }
-.status.active { color:#f5c842; }
-.queue-info { display:flex; align-items:center; gap:8px; justify-content:center; font-size:13px; color:rgba(255,255,255,0.35); }
-.dot { width:8px; height:8px; border-radius:50%; background:#f5c842; animation:pulse 1.2s infinite; }
-@keyframes pulse { 0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.4;transform:scale(0.8);} }
 #voiceRoom {
   display:none; flex-direction:column; align-items:center; gap:20px;
   width:100%; max-width:500px;
 }
 .room-title { font-size:16px; color:#1D9E75; font-weight:600; }
+.room-count { font-size:12px; color:rgba(255,255,255,0.3); }
 .participants { display:flex; gap:16px; flex-wrap:wrap; justify-content:center; }
 .participant { display:flex; flex-direction:column; align-items:center; gap:8px; }
 .p-avatar {
-  width:72px; height:72px; border-radius:50%;
-  background:#1a2a4a;
+  width:72px; height:72px; border-radius:50%; background:#1a2a4a;
   display:flex; align-items:center; justify-content:center;
   font-size:22px; font-weight:700; color:#85b7eb;
   border:3px solid rgba(255,255,255,0.1);
@@ -108,7 +88,7 @@ input::placeholder { color:rgba(255,255,255,0.25); }
 }
 .mic-btn {
   width:52px; height:52px; border-radius:50%; border:none; cursor:pointer;
-  font-size:22px; transition:all 0.15s; background:#1D9E75; color:#fff;
+  font-size:22px; transition:all 0.15s; background:#1D9E75;
 }
 .mic-btn.muted { background:rgba(226,75,74,0.25); }
 .mic-label { font-size:12px; color:rgba(255,255,255,0.3); }
@@ -141,32 +121,28 @@ input::placeholder { color:rgba(255,255,255,0.25); }
     <button class="logout-btn" onclick="doLogout()">Logout</button>
   </div>
   <div class="card">
-    <button class="btn btn-primary" id="connectBtn" onclick="joinQueue()">Connect with strangers</button>
-    <button class="btn btn-danger" id="leaveBtn" onclick="leaveQueue()" style="display:none">Leave queue</button>
-    <div class="status" id="statusMsg"></div>
-    <div class="queue-info" id="queueInfo" style="display:none">
-      <div class="dot"></div>
-      <span id="queueText">Waiting for others...</span>
-    </div>
+    <button class="btn btn-primary" id="connectBtn" onclick="joinRoom()">Connect with strangers</button>
   </div>
 </div>
 
 <div id="voiceRoom">
   <div class="room-title">🎙 Room active</div>
+  <div class="room-count" id="roomCount"></div>
   <div class="participants" id="participants"></div>
   <div class="mic-bar">
     <button class="mic-btn" id="micBtn" onclick="toggleMic()">🎤</button>
     <span class="mic-label" id="micLabel">Mic on</span>
   </div>
   <button class="btn btn-danger" style="max-width:300px" onclick="leaveRoom()">Leave room</button>
+  <button class="btn btn-primary" style="max-width:300px" onclick="nextRoom()">Next room →</button>
 </div>
 
 <script>
 let currentUser = null;
 let currentTab = 'login';
-let polling = null;
 let livekitRoom = null;
 let micMuted = false;
+let currentRoomName = null;
 
 async function init() {
   const res = await fetch('/api/me');
@@ -191,8 +167,7 @@ async function doAuth() {
   const endpoint = currentTab === 'login' ? '/api/login' : '/api/register';
   try {
     const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
     });
     const data = await res.json();
@@ -202,9 +177,11 @@ async function doAuth() {
 }
 
 async function doLogout() {
+  if (livekitRoom) { await livekitRoom.disconnect(); livekitRoom = null; }
   await fetch('/api/logout', { method: 'POST' });
   currentUser = null;
   document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('voiceRoom').style.display = 'none';
   document.getElementById('authScreen').style.display = 'flex';
 }
 
@@ -216,63 +193,45 @@ function showApp(user) {
   document.getElementById('userInitial').textContent = user.username[0].toUpperCase();
 }
 
-async function joinQueue() {
-  setStatus('Joining queue...', 'active');
+async function joinRoom() {
   document.getElementById('connectBtn').disabled = true;
-  document.getElementById('leaveBtn').style.display = 'block';
+  document.getElementById('connectBtn').textContent = 'Connecting...';
   try {
     const res = await fetch('/api/join', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
     const data = await res.json();
-    if (data.matched) { startVoiceRoom(data); return; }
-    document.getElementById('queueInfo').style.display = 'flex';
-    setStatus('', '');
-    // Poll every 2 seconds for a match
-    polling = setInterval(async () => {
-      try {
-        const r = await fetch('/api/poll', { credentials: 'same-origin' });
-        const d = await r.json();
-        document.getElementById('queueText').textContent = `${d.queueSize || 1} ${(d.queueSize || 1) === 1 ? 'person' : 'people'} in queue...`;
-        if (d.matched) {
-          clearInterval(polling);
-          startVoiceRoom(d);
-        }
-      } catch(e) {}
-    }, 2000);
+    if (data.ok) await startVoice(data);
   } catch(e) {
-    setStatus('Error joining queue', '');
-    resetQueue();
+    console.error(e);
   }
-}
-
-async function leaveQueue() {
-  clearInterval(polling);
-  await fetch('/api/leave', { method: 'POST' }).catch(() => {});
-  resetQueue();
-}
-
-function resetQueue() {
-  clearInterval(polling);
   document.getElementById('connectBtn').disabled = false;
-  document.getElementById('leaveBtn').style.display = 'none';
-  document.getElementById('queueInfo').style.display = 'none';
-  setStatus('', '');
+  document.getElementById('connectBtn').textContent = 'Connect with strangers';
 }
 
-function setStatus(msg, type) {
-  const el = document.getElementById('statusMsg');
-  el.textContent = msg;
-  el.className = 'status' + (type ? ' ' + type : '');
+async function nextRoom() {
+  // Leave current room then join a new one
+  if (livekitRoom) { await livekitRoom.disconnect(); livekitRoom = null; }
+  await fetch('/api/leave', { method: 'POST' }).catch(() => {});
+  currentRoomName = null;
+  // Join a new room
+  try {
+    const res = await fetch('/api/join', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    const data = await res.json();
+    if (data.ok) await startVoice(data);
+  } catch(e) { console.error(e); }
 }
 
-async function startVoiceRoom(data) {
-  clearInterval(polling);
-  document.getElementById('appScreen').style.display = 'none';
-  document.getElementById('voiceRoom').style.display = 'flex';
+async function startVoice(data) {
+  currentRoomName = data.roomName;
   micMuted = false;
   document.getElementById('micBtn').textContent = '🎤';
   document.getElementById('micBtn').className = 'mic-btn';
   document.getElementById('micLabel').textContent = 'Mic on';
+
+  document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('voiceRoom').style.display = 'flex';
   renderParticipants(data.roomUsers);
+  document.getElementById('roomCount').textContent = `${data.roomUsers.length} / ${5} people`;
+
   try {
     livekitRoom = new LivekitClient.Room({ adaptiveStream: true, dynacast: true });
     livekitRoom.on(LivekitClient.RoomEvent.ActiveSpeakersChanged, (speakers) => {
@@ -281,6 +240,12 @@ async function startVoiceRoom(data) {
         const el = document.getElementById('p-' + s.identity);
         if (el) el.classList.add('speaking');
       });
+    });
+    livekitRoom.on(LivekitClient.RoomEvent.ParticipantConnected, () => {
+      document.getElementById('roomCount').textContent = `${livekitRoom.remoteParticipants.size + 1} / 5 people`;
+    });
+    livekitRoom.on(LivekitClient.RoomEvent.ParticipantDisconnected, () => {
+      document.getElementById('roomCount').textContent = `${livekitRoom.remoteParticipants.size + 1} / 5 people`;
     });
     await livekitRoom.connect(data.livekitUrl, data.token);
     await livekitRoom.localParticipant.setMicrophoneEnabled(true);
@@ -301,11 +266,9 @@ function renderParticipants(users) {
 
 function toggleMic() {
   micMuted = !micMuted;
-  // Update UI immediately regardless of livekit
   document.getElementById('micBtn').textContent = micMuted ? '🔇' : '🎤';
   document.getElementById('micBtn').className = 'mic-btn' + (micMuted ? ' muted' : '');
   document.getElementById('micLabel').textContent = micMuted ? 'Mic off' : 'Mic on';
-  // Then tell livekit
   if (livekitRoom && livekitRoom.localParticipant) {
     livekitRoom.localParticipant.setMicrophoneEnabled(!micMuted).catch(e => console.error('Mic error:', e));
   }
@@ -313,9 +276,10 @@ function toggleMic() {
 
 async function leaveRoom() {
   if (livekitRoom) { await livekitRoom.disconnect(); livekitRoom = null; }
+  await fetch('/api/leave', { method: 'POST' }).catch(() => {});
+  currentRoomName = null;
   document.getElementById('voiceRoom').style.display = 'none';
   document.getElementById('appScreen').style.display = 'flex';
-  resetQueue();
 }
 
 init();
