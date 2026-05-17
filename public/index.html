@@ -229,7 +229,7 @@ async function joinQueue() {
     // Poll every 2 seconds for a match
     polling = setInterval(async () => {
       try {
-        const r = await fetch('/api/poll');
+        const r = await fetch('/api/poll', { credentials: 'same-origin' });
         const d = await r.json();
         document.getElementById('queueText').textContent = `${d.queueSize || 1} ${(d.queueSize || 1) === 1 ? 'person' : 'people'} in queue...`;
         if (d.matched) {
@@ -299,14 +299,16 @@ function renderParticipants(users) {
   `).join('');
 }
 
-async function toggleMic() {
+function toggleMic() {
   micMuted = !micMuted;
-  if (livekitRoom) {
-    await livekitRoom.localParticipant.setMicrophoneEnabled(!micMuted);
-  }
+  // Update UI immediately regardless of livekit
   document.getElementById('micBtn').textContent = micMuted ? '🔇' : '🎤';
   document.getElementById('micBtn').className = 'mic-btn' + (micMuted ? ' muted' : '');
   document.getElementById('micLabel').textContent = micMuted ? 'Mic off' : 'Mic on';
+  // Then tell livekit
+  if (livekitRoom && livekitRoom.localParticipant) {
+    livekitRoom.localParticipant.setMicrophoneEnabled(!micMuted).catch(e => console.error('Mic error:', e));
+  }
 }
 
 async function leaveRoom() {
