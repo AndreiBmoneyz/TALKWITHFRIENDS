@@ -66,12 +66,24 @@ input::placeholder { color:rgba(255,255,255,0.25); }
 .logout-btn:hover { color:rgba(255,255,255,0.6); }
 #voiceRoom {
   display:none; flex-direction:column; align-items:center; gap:20px;
-  width:100%; max-width:500px;
+  width:100%; max-width:800px;
 }
 .room-title { font-size:16px; color:#1D9E75; font-weight:600; }
 .room-count { font-size:12px; color:rgba(255,255,255,0.3); }
-.participants { display:flex; gap:16px; flex-wrap:wrap; justify-content:center; }
-.participant { display:flex; flex-direction:column; align-items:center; gap:8px; }
+.campfire-scene {
+  position:relative; width:100%; aspect-ratio:4095/2276;
+  background:url('/campfire.png') center/cover no-repeat;
+  border-radius:16px; overflow:hidden;
+}
+.participant {
+  position:absolute; display:flex; flex-direction:column; align-items:center; gap:4px;
+  transform:translate(-50%, -50%);
+}
+.participant:nth-child(1) { left:18%; top:38%; }
+.participant:nth-child(2) { left:33%; top:32%; }
+.participant:nth-child(3) { left:50%; top:28%; }
+.participant:nth-child(4) { left:64%; top:32%; }
+.participant:nth-child(5) { left:79%; top:40%; }
 .p-avatar {
   width:72px; height:72px; border-radius:50%; background:#1a2a4a;
   display:flex; align-items:center; justify-content:center;
@@ -128,7 +140,7 @@ input::placeholder { color:rgba(255,255,255,0.25); }
 <div id="voiceRoom">
   <div class="room-title">🎙 Room active</div>
   <div class="room-count" id="roomCount"></div>
-  <div class="participants" id="participants"></div>
+  <div class="campfire-scene" id="participants"></div>
   <div class="mic-bar">
     <button class="mic-btn" id="micBtn" onclick="toggleMic()">🎤</button>
     <span class="mic-label" id="micLabel">Mic on</span>
@@ -261,10 +273,10 @@ async function startVoice(data) {
 function renderParticipants(users) {
   document.getElementById('participants').innerHTML = users.map(u => `
     <div class="participant">
+      ${u.id !== currentUser.id ? `<button onclick="muteParticipant('${u.id}', this)" style="background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">🔊</button>
+      <input type="range" min="0" max="200" value="200" style="width:70px;accent-color:#5865F2;" oninput="setVolume('${u.id}', this.value)"/>` : ''}
       <div class="p-avatar" id="p-${u.id}">${u.username[0].toUpperCase()}</div>
-      <div class="p-name">${u.username}</div>
-      ${u.id !== currentUser.id ? `<button onclick="muteParticipant('${u.id}', this)" style="background:none;border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">🔊</button>
-      <input type="range" min="0" max="200" value="200" style="width:100%;accent-color:#5865F2;" oninput="setVolume('${u.id}', this.value)"/>` : ''}
+      <div class="p-name" style="background:rgba(0,0,0,0.5);padding:2px 6px;border-radius:4px;">${u.username}</div>
     </div>
   `).join('');
 }
